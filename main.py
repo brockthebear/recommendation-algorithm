@@ -7,8 +7,6 @@ from tensorflow.keras import layers
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pprint
-# from data_model import *
-# from data_model import RecommenderNet as Brain
 
 pp = pprint.PrettyPrinter(indent=2)
 
@@ -35,9 +33,6 @@ if not movielens_dir.exists():
 
 ratings_file = movielens_dir / "ratings.csv"
 df = pd.read_csv(ratings_file)
-
-# df = data_model.import_data()
-# user_data = data_model.get_users()
 
 user_ids = df["userId"].unique().tolist()
 user2user_encoded = {x: i for i, x in enumerate(user_ids)}
@@ -77,6 +72,8 @@ x_train, x_val, y_train, y_val = (
 
 # Create the Model
 EMBEDDING_SIZE = 50
+
+
 class RecommenderNet(keras.Model):
     def __init__(self, num_users, num_movies, embedding_size, **kwargs):
         super(RecommenderNet, self).__init__(**kwargs)
@@ -126,63 +123,64 @@ history = model.fit(
     validation_data=(x_val, y_val),
 )
 
-# history = data_model.train_model(model, x, y, batch_size, epochs, )
-
 # # Plot training and validation loss
 plt.plot(history.history["loss"])
 plt.plot(history.history["val_loss"])
 plt.title("model loss")
 plt.ylabel("loss")
-plt.xlabel("epoch")
-plt.legend(["train", "test"], loc="upper left")
+plt.xlabel("iteration")
+plt.legend(["training", "test"], loc="upper left")
 plt.show()
 
+
 def get_recommendations():
-	# Show top 10 movie recommendations to a user
-	movie_df = pd.read_csv(movielens_dir / "movies.csv")
+    # Show top 10 movie recommendations to a user
+    movie_df = pd.read_csv(movielens_dir / "movies.csv")
 
-	# # Let us get a user and see the top recommendations.
-	user_id = df.userId.sample(1).iloc[0]
-	movies_watched_by_user = df[df.userId == user_id]
-	movies_not_watched = movie_df[
-			~movie_df["movieId"].isin(movies_watched_by_user.movieId.values)
-	]["movieId"]
-	movies_not_watched = list(
-			set(movies_not_watched).intersection(set(movie2movie_encoded.keys()))
-	)
-	movies_not_watched = [[movie2movie_encoded.get(x)] for x in movies_not_watched]
-	user_encoder = user2user_encoded.get(user_id)
-	user_movie_array = np.hstack(
-			([[user_encoder]] * len(movies_not_watched), movies_not_watched)
-	)
-	ratings = model.predict(user_movie_array).flatten()
-	top_ratings_indices = ratings.argsort()[-10:][::-1]
-	recommended_movie_ids = [
-			movie_encoded2movie.get(movies_not_watched[x][0]) for x in top_ratings_indices
-	]
+    # # Let us get a user and see the top recommendations.
+    user_id = df.userId.sample(1).iloc[0]
 
-	print("Showing recommendations for user: {}".format(user_id))
-	print("====" * 9)
-	print("Movies with high ratings from user")
-	print("----" * 8)
-	top_movies_user = (
-			movies_watched_by_user.sort_values(by="rating", ascending=False)
-			.head(5)
-			.movieId.values
-	)
-	movie_df_rows = movie_df[movie_df["movieId"].isin(top_movies_user)]
-	pp.pprint(movie_df_rows)
-	for row in movie_df_rows.itertuples():
-			print(row.title, ":", row.genres)
+    movies_watched_by_user = df[df.userId == user_id]
+    movies_not_watched = movie_df[
+        ~movie_df["movieId"].isin(movies_watched_by_user.movieId.values)
+    ]["movieId"]
+    movies_not_watched = list(
+        set(movies_not_watched).intersection(set(movie2movie_encoded.keys()))
+    )
+    movies_not_watched = [
+        [movie2movie_encoded.get(x)] for x in movies_not_watched]
 
-	print("----" * 8)
-	print("Top 10 movie recommendations")
-	print("----" * 8)
-	recommended_movies = movie_df[movie_df["movieId"].isin(recommended_movie_ids)]
-	for row in recommended_movies.itertuples():
-			print(row.title, ":", row.genres)
+    user_encoder = user2user_encoded.get(user_id)
+    user_movie_array = np.hstack(
+        ([[user_encoder]] * len(movies_not_watched), movies_not_watched)
+    )
+    ratings = model.predict(user_movie_array).flatten()
+    top_ratings_indices = ratings.argsort()[-10:][::-1]
+    recommended_movie_ids = [
+        movie_encoded2movie.get(movies_not_watched[x][0]) for x in top_ratings_indices
+    ]
 
+    print("Showing recommendations for user: {}".format(user_id))
+    print("====" * 9)
+    print("Movies with high ratings from user")
+    print("----" * 8)
+    top_movies_user = (
+        movies_watched_by_user.sort_values(by="rating", ascending=False)
+        .head(5)
+        .movieId.values
+    )
+    movie_df_rows = movie_df[movie_df["movieId"].isin(top_movies_user)]
+    pp.pprint(movie_df_rows)
+    for row in movie_df_rows.itertuples():
+        print(row.title, ":", row.genres)
+
+    print("----" * 8)
+    print("Top 10 movie recommendations")
+    print("----" * 8)
+    recommended_movies = movie_df[movie_df["movieId"].isin(
+        recommended_movie_ids)]
+    for row in recommended_movies.itertuples():
+        print(row.title, ":", row.genres)
 
 
 get_recommendations()
-
